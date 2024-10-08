@@ -7,44 +7,45 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
-// To define API routes related to tasks. //
+// API routes for Task management
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
-    Route::get('/tasks', [TaskController::class, 'index']);
-    Route::post('/tasks', [TaskController::class, 'store']);
-    Route::get('/tasks/{task}', [TaskController::class, 'show']);
-    Route::put('/tasks/{task}', [TaskController::class, 'update']);
-    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
-    Route::apiResource('/tasks', TaskController::class);
-    Route::patch('/tasks/{task}/complete', [TaskController::class, 'complete']);
+    Route::get('/tasks', [TaskController::class, 'index']);         
+    Route::post('/tasks', [TaskController::class, 'store']);      
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);   
+    Route::put('/tasks/{task}', [TaskController::class, 'update']); 
+    Route::get('task/trashed', [TaskController::class, 'trashed']);
+    Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
+    Route::get('tasks-search', [TaskController::class, 'search']);
+    Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);  
 });
 
-// To define API routes related to Posts and Comments. //
+// API routes for Post and Comment management
 Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('posts/search', [PostController::class, 'search']);
     Route::get('posts/trashed', [PostController::class, 'trashed']);
+    Route::get('comments/trashed', [CommentController::class, 'trashed']);
     Route::patch('/posts/{id}/restore', [PostController::class, 'restore']);
+    Route::get('/comments', [CommentController::class, 'index']);
     Route::get('comments-with-posts', [CommentController::class, 'getCommentsWithPosts']);
     Route::apiResource('posts', PostController::class);
     Route::apiResource('posts.comments', CommentController::class);
     Route::get('comments/search', [CommentController::class, 'search'])->name('comments.search');
     Route::delete('comments/{id}', [CommentController::class, 'destroy'])->name('comments.destroy');
-    Route::post('comments/{id}/restore', [CommentController::class, 'restore'])->name('comments.restore');
 });
 
-// // To return the authenticated user's information. //
+// Return the authenticated user's information
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// To define API routes related to User Authentication. //
+// API routes for Admin Authentication
 Route::prefix('v1')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-// To define API routes related to User Details. //
+// API routes for User Details
 Route::prefix('v1')->group(function() {
     Route::middleware('auth:sanctum')->get('/user/details', [UserController::class, 'userDetails']);
 });
-

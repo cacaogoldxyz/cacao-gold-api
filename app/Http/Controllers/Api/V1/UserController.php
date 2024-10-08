@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\UserRequest;
 use Illuminate\Routing\Controller;
 use App\Services\AppResponse; 
-use App\Http\Resources\UserResource; 
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {

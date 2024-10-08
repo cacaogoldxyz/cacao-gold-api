@@ -2,24 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
-    // TODO: Create a crud functionality for Post that can have many comments
-    use HasFactory;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'name',
-        'user_id', // Add user_id as fillable for assignment
-        'is_completed', // You may also have this field if using task completion
-    ];
+    protected $fillable = ['name', 'status', 'body'];
 
-    // Defining the relationship that a Task belongs to a User
+    protected $dates = ['deleted_at'];
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-}
 
+    public function getStatusAttribute($value)
+    {
+        return $value == 1 ? 'completed' : 'incomplete';
+    }
+}

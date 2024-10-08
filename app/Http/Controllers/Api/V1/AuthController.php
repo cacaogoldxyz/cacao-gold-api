@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\AppResponse; 
-use App\Http\Resources\UserResource; 
+use App\Exceptions\InvalidCredentialsException;
+use Log;
 
 class AuthController extends Controller
 {
@@ -21,14 +23,18 @@ class AuthController extends Controller
             $validatedData['password'] = Hash::make($validatedData['password']);
             unset($validatedData['password_confirmation']);
             $user = User::create($validatedData);
-            $token = $user->createToken($validatedData['email']);
+
+            $token = $user->createToken($user->email);
 
             return AppResponse::success([
-                'user' => new UserResource($user), // Make the user to have a consistent response
+                'user' => new UserResource($user),  
                 'token' => $token->plainTextToken,
             ], 'Registration successful!', 201);
-        } catch (\Throwable $th) {
-            return AppResponse::error('Registration failed: ' . $th->getMessage(), 500);
+        } catch (\Exception $e) {
+            // Log the actual error for internal use
+            // Log::error('Registration error: ' . $e->getMessage());
+            
+            return AppResponse::error('Registration failed. Please try again later.', 500); // General error message
         }
     }
 
@@ -36,31 +42,41 @@ class AuthController extends Controller
     {
         try {
             $validatedData = $request->validated();
-            $user = User::where('email', $validatedData['email'])->first();
-
+            $user = User::where('email', $validatedData['email'])->first(); 
+    
             if (!$user || !Hash::check($validatedData['password'], $user->password)) {
-                return AppResponse::error('The provided credentials are incorrect.', 401);
+                throw new InvalidCredentialsException();
             }
-
-            $token = $user->createToken($user->name);
-
+    
+            $token = $user->createToken($user->email);
+    
             return AppResponse::success([
-                'user' => new UserResource($user), // Make the user to have a consistent response
+                'user' => new UserResource($user),
                 'token' => $token->plainTextToken,
             ], 'Login successful.', 200);
-        } catch (\Throwable $th) {
-            return AppResponse::error('Login failed: ' . $th->getMessage(), 500);
+    
+        } catch (InvalidCredentialsException $e) {
+            return AppResponse::error('Invalid credentials provided.', 401);  // General error for invalid credentials
+        } catch (\Exception $e) {
+            // Log the actual error for internal use
+            // Log::error('Login error: ' . $e->getMessage());
+
+            // TODO: Return a general error message to avoid exposing sensitive information
+            return AppResponse::error('An error occurred during login. Please try again later.', 500);  // General error for system failure
         }
-    }
+    } 
 
     public function logout(Request $request): JsonResponse
     {
         try {
             $request->user()->tokens()->delete();
-
+    
             return AppResponse::success(null, 'You are logged out.', 200);
-        } catch (\Throwable $th) {
-            return AppResponse::error('Logout failed: ' . $th->getMessage(), 500);
+        } catch (\Exception $e) {
+            // Log the actual error for internal use
+            // Log::error('Logout error: ' . $e->getMessage());
+            
+            return AppResponse::error('Logout failed. Please try again later.', 500); // General error message
         }
     }
 }

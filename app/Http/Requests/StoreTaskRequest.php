@@ -6,21 +6,16 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTaskRequest extends FormRequest
 {
-    // Validates the request data for creating a new task. //
-    public function authorize(): bool
+    public function authorize()
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
+    public function rules()
     {
         return [
-            'name' => 'required|string|max:255|min:2'
+            'name' => 'required|string|max:255',
+            'status' => 'nullable|boolean',
         ];
     }
 }

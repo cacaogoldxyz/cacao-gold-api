@@ -14,11 +14,21 @@ class TaskResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // Transforms a task into a JSON representation. //
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'is_completed' => (bool) $this->is_completed
+            'status' => $this->status ? 'completed' : 'incomplete',
+            'body' => $this->body,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
+    }
+
+    public static function success($data, $message, $statusCode = 200)
+    {
+        return response()->json([
+            'data' => $data,
+            'message' => $message,
+        ], $statusCode);
     }
 }

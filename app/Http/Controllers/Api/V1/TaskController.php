@@ -2,68 +2,123 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
-use App\Models\Task;
-use App\Http\Requests\StoreTaskRequest;
-use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
-use Request;
+use App\Models\Task;
+use App\Services\AppResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use App\Exceptions\InvalidQueryException;
 
 class TaskController extends Controller
 {
-     public function index(Request $request)
+    public function index(Request $request)
     {
-        $perPage = $request->per_page ??10;
-        $page = $request->page ??1;
-        return TaskResource::collection(Task::select('id', 'name', 'is_completed')->paginate($perPage, $page));
+        $perPage = $request->get('per_page', 10);  
+        $tasks = Task::select('id', 'name', 'status', 'body')->paginate($perPage);
+
+        if ($tasks->isEmpty()) {
+            return AppResponse::error('No tasks found.', 404);
+        }
+
+        return TaskResource::collection($tasks);
     }
 
-    public function store(StoreTaskRequest $request)
+    public function store(Request $request)
     {
-        $task = $request->user()->tasks()->create($request->validate([
+        $validated = $request->validate([
+            'name' => 'required',
+            'status' => 'required|boolean',
+            'body' => 'required',
+        ]);
+
+        $tasks = Task::create($validated);
+        return AppResponse::success($tasks, 'Tasks created successfully.', 201);
+    }
+
+    public function update(Request $request, Task $task)
+    {
+        $validated = $request->validate([
             'name' => 'required|string',
-            'is_completed' => 'boolean',
-        ]));
+            'status' => 'required|boolean',
+            'body' => 'required|string',
+        ]);
     
-        return TaskResource::make($task);
+        $task->update($validated);
+    
+        return AppResponse::success($task, 'Task updated successfully.', 200);
     }
 
     public function show(Task $task)
     {
         if (!$task) {
-            return response()->json(['error' => 'Task not found'], 404);
+            return AppResponse::error('Task not found.', 404);
         }
         return TaskResource::make($task);
     }
 
-    public function update(UpdateTaskRequest $request, Task $task)
+    public function search(Request $request)
     {
-        if (!$task->exists) {
-            return response()->json(['error' => 'Task not found'], 404);
+        $query = $request->input('query');
+        // TODO: Change into $status variable
+        // TODO: What if no data is entered in the first condition. How can I still show everything if completed and incomplete 
+        $status = $request->input('status') && $request->input('status') == 'completed' ? 1 : 
+                  ($request->input('status') && $request->input('status') == 'incomplete' ? 0 : null);
+    
+        if (is_null($query) && is_null($status)) {
+            return AppResponse::error('Please provide a search term or completion status.', 403);
         }
-        $task->update($request->validated());
+    
+        $tasks = Task::query()
+            ->when($query, function ($queryBuilder) use ($query) {
+                return $queryBuilder->where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('body', 'LIKE', "%{$query}%");
+            })
+            ->when(!is_null($status), function ($queryBuilder) use ($status) {
+                return $queryBuilder->where('status', $status);
+            })
+            ->paginate(10);
+    
+        if ($tasks->isEmpty()) {
+            return AppResponse::error('No tasks found matching the criteria.', 404);
+        }
+    
+        return TaskResource::success($tasks, 'Search results retrieved successfully.', statusCode: 200);
+    }    
 
-        return TaskResource::make($task);
+    public function restore($id)
+    {
+        $task = Task::withTrashed()->find($id);
+
+        if (!$task || !$task->trashed()) {
+            return AppResponse::error('Task not found or not deleted.', 404);
+        }
+
+        $task->restore();
+        return AppResponse::success(message: 'Task restored successfully!', statusCode: 404);
     }
 
-    public function destroy(Task $task)
+    public function trashed(Request $request)
     {
-        if(!$task->exists) {
-            return response()->json(['error'=> 'Task not found'],404);
-        } 
-        $task->delete(); 
+        $perPage = $request->input('per_page', 10);
+        $trashTasks = Task::onlyTrashed()->paginate($perPage);
 
-        return response()->noContent();
+        if ($trashTasks->isEmpty()) {
+            return AppResponse::error('No trashed tasks found.', 404);
+        }
+
+        return AppResponse::success($trashTasks, 'Trash tasks retrieved successfully.', 200);
     }
 
-    public function __invoke(Request $request, Task $task)
-
+    public function destroy($id)
     {
-        $task->is_completed = $request->is_completed;
-        
-        $task->save();
+        $task = Task::find($id);
 
-        return TaskResource::make($task);
+        if (!$task) {
+            return AppResponse::error('Task not found.', 404);
+        }
 
+        $task->delete();
+
+        return AppResponse::success(message: 'Task deleted successfully.', statusCode: 404);
     }
 }
