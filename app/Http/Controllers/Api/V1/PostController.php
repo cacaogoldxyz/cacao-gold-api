@@ -43,7 +43,7 @@ class PostController extends Controller
         }
     
         $postWithComments = $post->load('comments');
-        return AppResponse::success($postWithComments, 'Post retrieved successfully.');
+        return AppResponse::success($postWithComments, 'Post retrieved successfully.', 200);
     }
 
     public function search(Request $request)

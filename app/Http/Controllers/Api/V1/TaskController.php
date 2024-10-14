@@ -14,7 +14,7 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 10);  
-        $tasks = Task::select('id', 'name', 'status', 'body')->paginate($perPage);
+        $tasks = Task::select('id', 'name', 'status', 'task')->paginate($perPage);
 
         if ($tasks->isEmpty()) {
             return AppResponse::error('No tasks found.', 404);
@@ -28,7 +28,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'name' => 'required',
             'status' => 'required|boolean',
-            'body' => 'required',
+            'task' => 'required',
         ]);
 
         $tasks = Task::create($validated);
@@ -40,7 +40,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'status' => 'required|boolean',
-            'body' => 'required|string',
+            'task' => 'required|string',
         ]);
     
         $task->update($validated);
@@ -71,7 +71,7 @@ class TaskController extends Controller
         $tasks = Task::query()
             ->when($query, function ($queryBuilder) use ($query) {
                 return $queryBuilder->where('name', 'LIKE', "%{$query}%")
-                    ->orWhere('body', 'LIKE', "%{$query}%");
+                    ->orWhere('task', 'LIKE', "%{$query}%");
             })
             ->when(!is_null($status), function ($queryBuilder) use ($status) {
                 return $queryBuilder->where('status', $status);
