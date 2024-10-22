@@ -10,17 +10,17 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('task');
-            $table->boolean('status')->default(0); 
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->timestamps();
-            $table->softDeletes();
-        });
-    }
+{
+    Schema::create('tasks', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->string('task');
+        $table->boolean('status')->default(false);
+        $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+        $table->timestamps();
+        $table->softDeletes();
+    });
+}
 
     /**
      * Reverse the migrations.

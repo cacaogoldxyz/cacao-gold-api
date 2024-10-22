@@ -2,33 +2,19 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class TaskResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
-    public function toArray(Request $request): array
+    public function toArray($request)
     {
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'status' => $this->status ? 'completed' : 'incomplete',
             'task' => $this->task,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'status' => $this->status,
+            'created_at' => $this->created_at->toDateTimeString(),
+            'updated_at' => $this->updated_at->toDateTimeString(),
         ];
-    }
-
-    public static function success($data, $message, $statusCode = 200)
-    {
-        return response()->json([
-            'data' => $data,
-            'message' => $message,
-        ], $statusCode);
     }
 }

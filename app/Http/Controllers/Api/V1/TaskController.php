@@ -2,123 +2,128 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Requests\TaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Services\AppResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use App\Exceptions\InvalidQueryException;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);  
-        $tasks = Task::select('id', 'name', 'status', 'task')->paginate($perPage);
+        $perPage = $request->get('per_page', 10);
+        $tasks = Task::where('user_id', Auth::id())
+            ->select('id', 'name', 'status', 'task', 'created_at', 'updated_at')
+            ->paginate($perPage);
 
-        if ($tasks->isEmpty()) {
-            return AppResponse::error('No tasks found.', 404);
-        }
-
-        return TaskResource::collection($tasks);
+        return $tasks->isEmpty()
+            ? AppResponse::error('No tasks found.', 200)
+            : TaskResource::collection($tasks);
     }
 
-    public function store(Request $request)
+    public function store(TaskRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'status' => 'required|boolean',
-            'task' => 'required',
-        ]);
+        $validated = $request->getValidatedData();
+        $task = Task::create($validated);
 
-        $tasks = Task::create($validated);
-        return AppResponse::success($tasks, 'Tasks created successfully.', 201);
+        return TaskResource::make($task);
     }
 
-    public function update(Request $request, Task $task)
+    public function update(TaskRequest $request, Task $task)
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'status' => 'required|boolean',
-            'task' => 'required|string',
-        ]);
-    
+        $validated = $request->getValidatedData();
         $task->update($validated);
-    
-        return AppResponse::success($task, 'Task updated successfully.', 200);
+
+        return TaskResource::make($task);
     }
 
     public function show(Task $task)
     {
-        if (!$task) {
-            return AppResponse::error('Task not found.', 404);
+        if ($task->user_id !== Auth::id()) {
+            return AppResponse::error('Unauthorized to view this task.', 403);
         }
+
         return TaskResource::make($task);
     }
 
     public function search(Request $request)
     {
         $query = $request->input('query');
-        // TODO: Change into $status variable
-        // TODO: What if no data is entered in the first condition. How can I still show everything if completed and incomplete 
-        $status = $request->input('status') && $request->input('status') == 'completed' ? 1 : 
-                  ($request->input('status') && $request->input('status') == 'incomplete' ? 0 : null);
-    
+        $status = $request->input('status');
+
+        $status = $status === 'completed' ? 1 : ($status === 'incomplete' ? 0 : null);
+
         if (is_null($query) && is_null($status)) {
-            return AppResponse::error('Please provide a search term or completion status.', 403);
+        return AppResponse::error('Please provide a search term or completion status.', 403);
         }
-    
-        $tasks = Task::query()
-            ->when($query, function ($queryBuilder) use ($query) {
-                return $queryBuilder->where('name', 'LIKE', "%{$query}%")
-                    ->orWhere('task', 'LIKE', "%{$query}%");
-            })
-            ->when(!is_null($status), function ($queryBuilder) use ($status) {
-                return $queryBuilder->where('status', $status);
-            })
+
+
+        $tasks = Task::where('user_id', Auth::id())
+            ->when($query, fn($q) => $q->where('name', 'LIKE', "%{$query}%")
+                                  ->orWhere('task', 'LIKE', "%{$query}%"))
+            ->when(!is_null($status), fn($q) => $q->where('status', $status))
             ->paginate(10);
-    
-        if ($tasks->isEmpty()) {
-            return AppResponse::error('No tasks found matching the criteria.', 404);
-        }
-    
-        return TaskResource::success($tasks, 'Search results retrieved successfully.', statusCode: 200);
-    }    
+
+        return $tasks->isEmpty()
+        ? AppResponse::success([], 'No tasks found matching the criteria.', 200)
+        : TaskResource::collection($tasks);
+    }
+
 
     public function restore($id)
     {
+        // Find the trashed task
         $task = Task::withTrashed()->find($id);
 
-        if (!$task || !$task->trashed()) {
-            return AppResponse::error('Task not found or not deleted.', 404);
+        if (!$task) {
+            return AppResponse::error('Task not found.', 404);
+        }
+
+        // Check if the task is trashed and if the user owns it
+        if (!$task->trashed()) {
+            return AppResponse::error('Task is not deleted.', 400);
+        }
+
+        if ($task->user_id !== Auth::id()) {
+            return AppResponse::error('Unauthorized to restore this task.', 403);
         }
 
         $task->restore();
-        return AppResponse::success(message: 'Task restored successfully!', statusCode: 404);
+
+        return AppResponse::success(message: 'Task restored successfully!', statusCode: 200);
     }
 
     public function trashed(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        $trashTasks = Task::onlyTrashed()->paginate($perPage);
+        // Get only trashed tasks for the authenticated user
+        $trashTasks = Task::onlyTrashed()->where('user_id', Auth::id())->paginate($perPage);
 
-        if ($trashTasks->isEmpty()) {
-            return AppResponse::error('No trashed tasks found.', 404);
-        }
-
-        return AppResponse::success($trashTasks, 'Trash tasks retrieved successfully.', 200);
+        return $trashTasks->isEmpty()
+            ? response()->json(['message' => 'No trashed tasks found.', 'data' => []], 200)
+            : AppResponse::success($trashTasks, 'Trash tasks retrieved successfully.', 200);
     }
 
     public function destroy($id)
     {
+        // Find the task
         $task = Task::find($id);
 
         if (!$task) {
             return AppResponse::error('Task not found.', 404);
         }
 
+        // Ensure the authenticated user owns the task
+        if ($task->user_id !== Auth::id()) {
+            return AppResponse::error('Unauthorized to delete this task.', 403);
+        }
+
         $task->delete();
 
-        return AppResponse::success(message: 'Task deleted successfully.', statusCode: 404);
+        return AppResponse::success(message: 'Task deleted successfully.', statusCode: 200);
     }
 }

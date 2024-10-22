@@ -9,7 +9,12 @@ class Task extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'status', 'task'];
+    protected $fillable = [
+        'name',
+        'task',
+        'status',
+        'user_id',
+    ];
 
     protected $dates = ['deleted_at'];
 
@@ -18,8 +23,14 @@ class Task extends Model
         return $this->belongsTo(User::class);
     }
 
+    // public function getStatusAttribute($value)
+    // {
+    //     return (bool) $value; 
+    // }
+
+
     public function getStatusAttribute($value)
     {
-        return $value == 1 ? 'completed' : 'incomplete';
+        return $value ? 'Completed' : 'Incomplete';
     }
 }
