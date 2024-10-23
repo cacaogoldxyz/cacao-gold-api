@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Task;
 use App\Models\User;
+use Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
@@ -24,11 +24,12 @@ class AuthController extends Controller
             $validatedData['password'] = Hash::make($validatedData['password']);
             unset($validatedData['password_confirmation']);
             $user = User::create($validatedData);
-
+    
             return AppResponse::success([
                 'user' => new UserResource($user),
             ], 'Registration successful!', 201);
         } catch (\Exception $e) {
+            Log::error('Registration error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('Registration failed. Please try again later.', 500);
         }
     }
@@ -39,12 +40,25 @@ class AuthController extends Controller
             $validatedData = $request->validated();
             $user = User::where('email', $validatedData['email'])->first();
 
-            if (!$user || !Hash::check($validatedData['password'], $user->password)) {
+            if (!$user) {
                 throw new InvalidCredentialsException();
             }
+            
+            if (!Hash::check($validatedData['password'], $user->password)) {
+                throw new InvalidCredentialsException();
+            }
+    
+            $existingToken = $user->tokens()->first();
 
-            $user->tokens()->delete();
+            // Revoke existing token before creating a new one
+            if ($existingToken) {
+                Log::info("Revoking existing token for user: {$user->email}");
+                $existingToken->delete();
+            }
+
+            // Create a new token
             $token = $user->createToken($user->email);
+            Log::info("New token created for user: {$user->email}");
 
             return AppResponse::success([
                 'user' => new UserResource($user),
@@ -53,6 +67,7 @@ class AuthController extends Controller
         } catch (InvalidCredentialsException $e) {
             return AppResponse::error('Invalid credentials provided.', 401);
         } catch (\Exception $e) {
+            Log::error('Login error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('An error occurred during login. Please try again later.', 500);
         }
     }
@@ -60,15 +75,16 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
-
-            Task::where('user_id', $user->id)->delete();
-
-            $user->currentAccessToken()->delete();
-
-            return AppResponse::success(null, 'You have been logged out and your tasks have been deleted.', 200);
+            $user = Auth::user();
+            if (!$user) {
+                return AppResponse::error('User not authenticated', 401);
+            }
+    
+            $user->tokens()->delete(); // Revoke the authenticated user's tokens
+            return AppResponse::success('Logged out successfully', 200);
         } catch (\Exception $e) {
-            return AppResponse::error('Logout failed. Please try again later.', 500);
+            Log::error('Logout error: ', ['error' => $e->getMessage()]);
+            return AppResponse::error('Logout failed.', 500);
         }
     }
 }

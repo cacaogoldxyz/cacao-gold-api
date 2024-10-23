@@ -11,12 +11,17 @@ class UserController extends Controller
 {
     public function userDetails(UserRequest $request)
     {
-        $user = $request->user();
+    $user = $request->user();
 
-        return AppResponse::success(
-            new UserResource($user), 
-            'User detail retrieved successfully.',
-            200
-        );
+    if (!$user) {
+        \Log::warning('User not found', ['request' => $request->all()]);
+        return AppResponse::error('User not authenticated.', 401);
+    }
+
+    return AppResponse::success(
+        new UserResource($user), 
+        'User detail retrieved successfully.',
+        200
+    );
     }
 }

@@ -12,17 +12,22 @@ Route::get('/sanctum/csrf-cookie', function () {
     return response()->json(['success' => true]);
 });
 
-// API routes for Task management (No token required)
+// API routes for Task management (No token required for viewing, token required for create, update, delete)
 Route::prefix('v1')->group(function () {
+    // Publicly accessible routes
     Route::get('/dashboard', [TaskController::class, 'index']);
     Route::get('/tasks', [TaskController::class, 'index']);
-    Route::post('/tasks', [TaskController::class, 'store']);
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
-    Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::get('task/trashed', [TaskController::class, 'trashed']);
-    Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
     Route::get('tasks-search', [TaskController::class, 'search']);
-    Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);
+    
+    // Routes that require authentication
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/tasks', [TaskController::class, 'store']);
+        Route::put('/tasks/{task}', [TaskController::class, 'update']);
+        Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
+        Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);
+    });
 });
 
 // API routes for Post and Comment management (No token required)
@@ -42,8 +47,8 @@ Route::prefix('v1')->group(function () {
 
 // API routes for Admin Authentication (No token required)
 Route::prefix('v1')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
 });
 
 // API routes for User Details (Requires token)
@@ -52,5 +57,6 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::get('/user/details', [UserController::class, 'userDetails']);
+    Route::middleware('auth:sanctum')->get('/user-details/{id}', [UserController::class, 'userDetails']);
 });
+
