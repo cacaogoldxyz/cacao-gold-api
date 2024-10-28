@@ -16,7 +16,7 @@ return new class extends Migration
         $table->string('name');
         $table->string('task');
         $table->boolean('status')->default(false);
-        $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+        $table->foreignId('user_id')->constrained()->onDelete('restrict');
         $table->timestamps();
         $table->softDeletes();
     });

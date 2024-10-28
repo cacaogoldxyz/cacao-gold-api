@@ -29,7 +29,7 @@ class AuthController extends Controller
                 'user' => new UserResource($user),
             ], 'Registration successful!', 201);
         } catch (\Exception $e) {
-            Log::error('Registration error: ', ['error' => $e->getMessage()]);
+            // Log::error('Registration error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('Registration failed. Please try again later.', 500);
         }
     }
@@ -40,12 +40,18 @@ class AuthController extends Controller
             $validatedData = $request->validated();
             $user = User::where('email', $validatedData['email'])->first();
 
+            // Check if the user exists in the database based on the provided email or username
             if (!$user) {
-                throw new InvalidCredentialsException();
+                // If no user is found, return an AppResponse error.
+                // This indicates that the login attempt has failed due to invalid credentials.
+                return AppResponse::error('Invalid email or password.', 401);
             }
             
+            // Check if the provided password matches the hashed password stored in the database
             if (!Hash::check($validatedData['password'], $user->password)) {
-                throw new InvalidCredentialsException();
+                // If the password does not match, return an AppResponse error.
+                // This indicates that the password provided is incorrect for the found user.
+                return AppResponse::error('Invalid email or password.', 401);
             }
     
             $existingToken = $user->tokens()->first();
@@ -67,7 +73,6 @@ class AuthController extends Controller
         } catch (InvalidCredentialsException $e) {
             return AppResponse::error('Invalid credentials provided.', 401);
         } catch (\Exception $e) {
-            Log::error('Login error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('An error occurred during login. Please try again later.', 500);
         }
     }
@@ -80,10 +85,9 @@ class AuthController extends Controller
                 return AppResponse::error('User not authenticated', 401);
             }
     
-            $user->tokens()->delete(); // Revoke the authenticated user's tokens
+            $user->tokens()->delete(); 
             return AppResponse::success('Logged out successfully', 200);
         } catch (\Exception $e) {
-            Log::error('Logout error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('Logout failed.', 500);
         }
     }
