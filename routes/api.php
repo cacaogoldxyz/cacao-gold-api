@@ -13,19 +13,17 @@ Route::get('/sanctum/csrf-cookie', function () {
 });
 
 // API routes for Task management (No token required for viewing, token required for create, update, delete)
-Route::prefix('v1')->group(function () {
-    // Routes that require authentication
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/tasks', [TaskController::class, 'store']);
-        Route::put('/tasks/{task}', [TaskController::class, 'update']);
-        Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
-        Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);
-        Route::get('/dashboard', [TaskController::class, 'index']);
-        Route::get('/tasks', [TaskController::class, 'index']);
-        Route::get('/tasks/{task}', [TaskController::class, 'show']);
-        Route::get('task/trashed', [TaskController::class, 'trashed']);
-        Route::get('tasks-search', [TaskController::class, 'search']);
-    });
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
+    Route::patch('/tasks/{id}/restore', [TaskController::class, 'restore']);
+    Route::get('/dashboard', [TaskController::class, 'index']);
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);
+    Route::get('task/trashed', [TaskController::class, 'trashed']);
+    Route::get('tasks-search', [TaskController::class, 'search']);
 });
 
 // API routes for Post and Comment management (No token required)
@@ -46,7 +44,8 @@ Route::prefix('v1')->group(function () {
 // API routes for Admin Authentication (No token required)
 Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    // (token required)
+    Route::middleware('auth:sanctum')->post('/login', [AuthController::class, 'login']);
 });
 
 // API routes for User Details (Requires token)

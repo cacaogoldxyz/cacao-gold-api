@@ -9,11 +9,12 @@ class TaskRequest extends FormRequest
 {
     public function authorize()
     {
-        return true; 
+        return true;
     }
 
     public function rules()
     {
+        // Get the task ID from the route for update operations
         $taskId = $this->route('task')?->id; 
 
         return [
@@ -27,23 +28,24 @@ class TaskRequest extends FormRequest
             ],
             'task' => 'required|string',
             'status' => 'nullable|boolean',
-            'user_id' => 'required|integer|exists:users,id', 
+            'user_id' => 'nullable|integer|exists:users,id'
         ];
     }
 
-    protected function prepareForValidation()
-    {
-        $this->merge([
-            'user_id' => auth()->id(), 
-            'name' => trim($this->name), 
-            'task' => trim($this->task), 
-        ]);
+    public function prepareForValidation() {
+        info(auth()->id());
+        if(auth()->id()){
+            $this->merge([
+                'user_id' => auth()->id(),
+            ]);
+        }
     }
 
     public function getValidatedData()
     {
         $validated = $this->validated();
         $validated['status'] = $this->boolean('status'); 
-        return $validated; 
+        $validated['user_id'] = auth()->id(); 
+        return $validated;
     }
 }
