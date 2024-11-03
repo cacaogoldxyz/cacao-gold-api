@@ -29,7 +29,6 @@ class AuthController extends Controller
                 'user' => new UserResource($user),
             ], 'Registration successful!', 201);
         } catch (\Exception $e) {
-            // Log::error('Registration error: ', ['error' => $e->getMessage()]);
             return AppResponse::error('Registration failed. Please try again later.', 500);
         }
     }
@@ -40,29 +39,21 @@ class AuthController extends Controller
             $validatedData = $request->validated();
             $user = User::where('email', $validatedData['email'])->first();
 
-            // Check if the user exists in the database based on the provided email or username
             if (!$user) {
-                // If no user is found, return an AppResponse error.
-                // This indicates that the login attempt has failed due to invalid credentials.
                 return AppResponse::error('Invalid email or password.', 401);
             }
             
-            // Check if the provided password matches the hashed password stored in the database
             if (!Hash::check($validatedData['password'], $user->password)) {
-                // If the password does not match, return an AppResponse error.
-                // This indicates that the password provided is incorrect for the found user.
                 return AppResponse::error('Invalid email or password.', 401);
             }
     
             $existingToken = $user->tokens()->first();
 
-            // Revoke existing token before creating a new one
             if ($existingToken) {
                 Log::info("Revoking existing token for user: {$user->email}");
                 $existingToken->delete();
             }
 
-            // Create a new token
             $token = $user->createToken($user->email);
             Log::info("New token created for user: {$user->email}");
 

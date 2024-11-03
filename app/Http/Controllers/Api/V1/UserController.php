@@ -14,7 +14,7 @@ class UserController extends Controller
     $user = $request->user();
 
     if (!$user) {
-        \Log::warning('User not found', ['request' => $request->all()]);
+        // \Log::warning('User not found', ['request' => $request->all()]);
         return AppResponse::error('User not authenticated.', 401);
     }
 
