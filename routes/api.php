@@ -41,11 +41,9 @@ Route::prefix('v1')->group(function () {
     Route::delete('comments/{id}', [CommentController::class, 'destroy'])->name('comments.destroy');
 });
 
-// API routes for Admin Authentication (No token required)
 Route::prefix('v1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    // (token required)
-    Route::middleware('auth:sanctum')->post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login']);
 });
 
 // API routes for User Details (Requires token)
