@@ -72,6 +72,8 @@ class TaskController extends Controller
                 $q->where('status', $status);
             })
             ->paginate(10);
+
+        Info('Filtered Tasks:', $tasks->toArray());
     
         return $tasks->isEmpty()
             ? AppResponse::success([], 'No tasks found matching the criteria.', 200)
@@ -103,11 +105,13 @@ class TaskController extends Controller
     public function trashed(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        $trashTasks = Task::onlyTrashed()->where('user_id', Auth::id())->paginate($perPage);
+        $trashedTasks = Task::onlyTrashed()->where('user_id', Auth::id())->paginate($perPage);
 
-        return $trashTasks->isEmpty()
-            ? response()->json(['message' => 'No trashed tasks found.', 'data' => []], 200)
-            : AppResponse::success($trashTasks, 'Trash tasks retrieved successfully.', 200);
+        if ($trashedTasks->isEmpty()) {
+            return AppResponse::error('No trashed tasks found.', 404);
+        }
+        
+        return AppResponse::success(data: $trashedTasks, message: 'Trashed tasks retrieved successfully.');
     }
 
     public function destroy($id)
@@ -125,5 +129,22 @@ class TaskController extends Controller
         $task->delete();
 
         return AppResponse::success(message: 'Task deleted successfully.', statusCode: 200);
+    }
+
+    public function forceDelete($id)
+    {
+        $task = Task::withTrashed()->find($id);
+
+        if (!$task) {
+            return AppResponse::error('Task not found.', 404);
+        }
+    
+        if ($task->user_id !== Auth::id()) {
+            return AppResponse::error('Unauthorized to delete this task.', 403);
+        }
+    
+        $task->forceDelete();
+    
+        return AppResponse::success(message: 'Task permanently deleted successfully!', statusCode: 200);
     }
 }
