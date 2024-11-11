@@ -28,7 +28,7 @@ class TaskRequest extends FormRequest
             ],
             'task' => 'required|string',
             'status' => 'nullable|boolean',
-            'user_id' => 'nullable|integer|exists:users,id'
+            'user_id' => 'required|integer|exists:users,id'
         ];
     }
 

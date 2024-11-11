@@ -72,8 +72,6 @@ class TaskController extends Controller
                 $q->where('status', $status);
             })
             ->paginate(10);
-
-        Info('Filtered Tasks:', $tasks->toArray());
     
         return $tasks->isEmpty()
             ? AppResponse::success([], 'No tasks found matching the criteria.', 200)
@@ -121,6 +119,8 @@ class TaskController extends Controller
                 $q->where('status', $status);
             })
             ->paginate($perPage);
+
+            \Log::info(Task::onlyTrashed()->where('user_id', Auth::id())->toSql());
     
         if ($trashedTasks->isEmpty()) {
             return AppResponse::error('No trashed tasks found.', 404);
