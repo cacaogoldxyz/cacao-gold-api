@@ -24,6 +24,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/tasks', [TaskController::class, 'index']);
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::get('task/trashed', [TaskController::class, 'trashed']);
+    Route::get('trashed-search', [TaskController::class, 'trashed']);
     Route::get('tasks-search', [TaskController::class, 'search']);
 });
 
