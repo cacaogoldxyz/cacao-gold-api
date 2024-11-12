@@ -105,16 +105,17 @@ class TaskController extends Controller
     public function trashed(Request $request)
     {
         $query = $request->input('query');
-        $status = $request->input('status');
+        $statusInput = $request->input('status');
         $perPage = $request->input('per_page', 10); 
 
-        $status = $status === 'completed' ? 1 : ($status === 'incomplete' ? 0 : null);
+        $status = $statusInput === 'completed' ? 1 : ($statusInput === 'incomplete' ? 0 : null);
     
         $trashedTasks = Task::onlyTrashed()
             ->where('user_id', Auth::id())
             ->when($query, function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
-                  ->orWhere('task', 'LIKE', "%{$query}%");
+                  ->orWhere('task', 'LIKE', "%{$query}%")
+                  ->orWhere('status', $query === 'completed' ? 1 : ($query === 'incomplete' ? 0 : null));
 
             })
             ->when(!is_null($status), function ($q) use ($status) {
