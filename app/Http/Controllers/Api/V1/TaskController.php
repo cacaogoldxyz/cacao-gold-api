@@ -106,22 +106,23 @@ class TaskController extends Controller
     {
         $query = $request->input('query');
         $statusInput = $request->input('status');
-        $perPage = $request->input('per_page', 10); 
+        // $perPage = $request->input('per_page', 10); 
 
         $status = $statusInput === 'completed' ? 1 : ($statusInput === 'incomplete' ? 0 : null);
     
         $trashedTasks = Task::onlyTrashed()
             ->where('user_id', Auth::id())
             ->when($query, function ($q) use ($query) {
-                $q->where('name', 'LIKE', "%{$query}%")
-                  ->orWhere('task', 'LIKE', "%{$query}%")
-                  ->orWhere('status', $query === 'completed' ? 1 : ($query === 'incomplete' ? 0 : null));
-
-            })
+                $q->where(function ($q) use ($query) {
+                 $q->where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('task', 'LIKE', "%{$query}%")
+                    ->orWhere('status', $query === 'completed' ? 1 : ($query === 'incomplete' ? 0 : null));
+            });
+        })
             ->when(!is_null($status), function ($q) use ($status) {
                 $q->where('status', $status);
             })
-            ->paginate($perPage);
+            ->paginate(5);
     
         if ($trashedTasks->isEmpty()) {
             return AppResponse::error('No trashed tasks found.', 404);
