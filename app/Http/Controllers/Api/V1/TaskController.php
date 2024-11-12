@@ -53,26 +53,28 @@ class TaskController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('query');
-        $status = $request->input('status');
+        $statusInput = $request->input('status');
 
-        $status = $status === 'completed' ? 1 : ($status === 'incomplete' ? 0 : null);
+        $status = $statusInput === 'completed' ? 1 : ($statusInput === 'incomplete' ? 0 : null);
 
-        if (is_null($query) && is_null($status)) {
-            return AppResponse::error('Please provide a search term or completion status.', 403);
+        if (is_null($query) && is_null($statusInput)) {
+            return AppResponse::error('Please provide a search term or completion status.', 400);
         }
     
         $tasks = Task::where('user_id', Auth::id())
-            ->when($query, function ($q) use ($query) {
-                $q->where(function ($subQuery) use ($query) {
-                    $subQuery->where('name', 'LIKE', "%{$query}%")
-                             ->orWhere('task', 'LIKE', "%{$query}%");
-                });
+        ->when($query, function ($q) use ($query) {
+            $q->where(function ($subQuery) use ($query) {
+                $subQuery->where('name', 'LIKE', "%{$query}%")
+                         ->orWhere('task', 'LIKE', "%{$query}%")
+                         ->orWhere('status', $query === 'completed' ? 1 : ($query === 'incomplete' ? 0 : null));
+            });
             })
             ->when(!is_null($status), function ($q) use ($status) {
                 $q->where('status', $status);
             })
             ->paginate(10);
     
+        // return AppResponse::success($tasks, 'Tasks retrieved successfully.');
         return $tasks->isEmpty()
             ? AppResponse::success([], 'No tasks found matching the criteria.', 200)
             : TaskResource::collection($tasks);
@@ -104,7 +106,7 @@ class TaskController extends Controller
     {
         $query = $request->input('query');
         $status = $request->input('status');
-        $perPage = $request->input('per_page', 10);
+        $perPage = $request->input('per_page', 10); 
 
         $status = $status === 'completed' ? 1 : ($status === 'incomplete' ? 0 : null);
     
@@ -119,8 +121,6 @@ class TaskController extends Controller
                 $q->where('status', $status);
             })
             ->paginate($perPage);
-
-            \Log::info(Task::onlyTrashed()->where('user_id', Auth::id())->toSql());
     
         if ($trashedTasks->isEmpty()) {
             return AppResponse::error('No trashed tasks found.', 404);

@@ -28,16 +28,18 @@ class TaskRequest extends FormRequest
             ],
             'task' => 'required|string',
             'status' => 'nullable|boolean',
-            'user_id' => 'required|integer|exists:users,id'
+            'user_id' => 'nullable|integer|exists:users,id'
         ];
     }
 
     public function prepareForValidation() {
         info(auth()->id());
-        if(auth()->id()){
+        if (auth()->id()) {
             $this->merge([
                 'user_id' => auth()->id(),
             ]);
+        } else {
+            info('No user ID found');
         }
     }
 

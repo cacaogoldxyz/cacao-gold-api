@@ -14,7 +14,6 @@ Route::get('/sanctum/csrf-cookie', function () {
 
 // API routes for Task management (No token required for viewing, token required for create, update, delete)
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
-    
     Route::post('/tasks', [TaskController::class, 'store']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('tasks/{id}', [TaskController::class, 'destroy']);
