@@ -72,7 +72,7 @@ class TaskController extends Controller
             ->when(!is_null($status), function ($q) use ($status) {
                 $q->where('status', $status);
             })
-            ->paginate(10);
+            ->paginate(3);
     
         // return AppResponse::success($tasks, 'Tasks retrieved successfully.');
         return $tasks->isEmpty()
@@ -106,7 +106,7 @@ class TaskController extends Controller
     {
         $query = $request->input('query');
         $statusInput = $request->input('status');
-        // $perPage = $request->input('per_page', 10); 
+        $perPage = $request->input('per_page', 5); 
 
         $status = $statusInput === 'completed' ? 1 : ($statusInput === 'incomplete' ? 0 : null);
     
@@ -122,7 +122,7 @@ class TaskController extends Controller
             ->when(!is_null($status), function ($q) use ($status) {
                 $q->where('status', $status);
             })
-            ->paginate(5);
+            ->paginate($perPage);
     
         if ($trashedTasks->isEmpty()) {
             return AppResponse::error('No trashed tasks found.', 404);
