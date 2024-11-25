@@ -17,10 +17,9 @@ use Log;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request, $e): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
         try {
-            Log::error($e->getMessage());
             $validatedData = $request->validated();
             $validatedData['password'] = Hash::make($validatedData['password']);
             unset($validatedData['password_confirmation']);
