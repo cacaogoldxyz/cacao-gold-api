@@ -76,7 +76,7 @@ class TaskController extends Controller
     
         // return AppResponse::success($tasks, 'Tasks retrieved successfully.');
         return $tasks->isEmpty()
-            ? AppResponse::success([], 'No tasks found matching the criteria.', 200)
+            ? AppResponse::success([], 'No tasks found!', 200)
             : TaskResource::collection($tasks);
     }
 
@@ -124,9 +124,12 @@ class TaskController extends Controller
             })
             ->paginate($perPage);
     
-        if ($trashedTasks->isEmpty()) {
-            return AppResponse::error('No trashed tasks found.', 404);
-        }
+            if ($trashedTasks->isEmpty()) {
+                return AppResponse::success(
+                    data: [], 
+                 message: 'No trashed tasks found.'
+                );
+            }
         
         return AppResponse::success(data: $trashedTasks, message: 'Trashed tasks retrieved successfully.');
     }

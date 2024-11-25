@@ -3,27 +3,31 @@
 namespace App\Http\Controllers\Api\V1;
 
 // use App\Exceptions\Handler;
+use App\Http\Requests\CommentRequest;
 use App\Exceptions\InvalidQueryException;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Services\AppResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
     public function index()
     {
         $posts = Post::with('comments')->whereNull('deleted_at')->get();
+        // $posts = Post::where('user_id',  Auth::id())
+        //     ->with('comments')->whereNull('deleted_at')->get();
     
-        if ($posts->isEmpty()) {
-            return AppResponse::error('No posts available.', 404);
-        }
+        // if ($posts->isEmpty()) {
+        //     return AppResponse::error('No posts available.', 404);
+        // }
         
         return AppResponse::success($posts, 'Posts retrieved successfully.', 200);
     }
 
-    public function store(Request $request)
+    public function store(CommentRequest $request)
     {
         $validated = $request->validate([
             'title' => 'required',

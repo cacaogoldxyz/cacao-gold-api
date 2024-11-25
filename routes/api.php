@@ -25,10 +25,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('task/trashed', [TaskController::class, 'trashed']);
     Route::get('trashed-search', [TaskController::class, 'trashed']);
     Route::get('tasks-search', [TaskController::class, 'search']);
-});
+}); 
 
 // API routes for Post and Comment management (No token required)
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('posts/search', [PostController::class, 'search']);
     Route::get('posts/trashed', [PostController::class, 'trashed']);
     Route::get('comments/trashed', [CommentController::class, 'trashed']);
@@ -53,6 +53,6 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::middleware('auth:sanctum')->get('/user-details/{id}', [UserController::class, 'userDetails']);
+    Route::get('/user-details/{id}', [UserController::class, 'userDetails']);
 });
 
