@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\Handler;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
@@ -38,33 +39,26 @@ class AuthController extends Controller
         try {
             $validatedData = $request->validated();
             $user = User::where('email', $validatedData['email'])->first();
-
-            if (!$user) {
-                return AppResponse::error('Invalid email or password.', 401);
-            }
-            
-            if (!Hash::check($validatedData['password'], $user->password)) {
+    
+            if (!$user || !Hash::check($validatedData['password'], $user->password)) {
                 return AppResponse::error('Invalid email or password.', 401);
             }
     
             $existingToken = $user->tokens()->first();
-
             if ($existingToken) {
                 Log::info("Revoking existing token for user: {$user->email}");
                 $existingToken->delete();
             }
-
+    
             $token = $user->createToken($user->email);
             Log::info("New token created for user: {$user->email}");
-
+    
             return AppResponse::success([
                 'user' => new UserResource($user),
                 'token' => $token->plainTextToken,
             ], 'Login successful.', 200);
-        } catch (InvalidCredentialsException $e) {
-            return AppResponse::error('Invalid credentials provided.', 401);
         } catch (\Exception $e) {
-            return AppResponse::error('An error occurred during login. Please try again later.', 500);
+            return AppResponse::error('An error occurred. Please try again later.', 500);
         }
     }
 
