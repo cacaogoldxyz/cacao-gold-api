@@ -23,7 +23,7 @@ class CommentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => 'required|string|max:500', // Added a max length for comment body for better validation.
+            'body' => 'required|string|max:500', 
         ];
     }
 
