@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-// use App\Exceptions\Handler;
-use App\Http\Requests\CommentRequest;
+use App\Http\Requests\PostRequest;
 use App\Exceptions\InvalidQueryException;
-use App\Models\Comment;
+use App\Http\Resources\PostResource;
 use App\Models\Post;
 use App\Services\AppResponse;
 use Illuminate\Http\Request;
@@ -14,40 +13,39 @@ use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with('comments')->whereNull('deleted_at')->get();
-        // $posts = Post::where('user_id',  Auth::id())
-        //     ->with('comments')->whereNull('deleted_at')->get();
-    
-        // if ($posts->isEmpty()) {
-        //     return AppResponse::error('No posts available.', 404);
-        // }
-        
+        $posts = Post::where('user_id', Auth::id())
+            ->with(['comments.user']) 
+            ->get();
+
         return AppResponse::success($posts, 'Posts retrieved successfully.', 200);
     }
 
-    public function store(CommentRequest $request)
+    public function store(PostRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required',
-            'body' => 'required',
-        ]);
+        $validated = $request->validated();
 
-        $post = Post::create($validated);
-        return AppResponse::success($post, 'Post created successfully.', 201);
+        $post = Post::create(array_merge(
+            $validated,
+            ['user_id' => Auth::id()] 
+        ));
+
+        return AppResponse::success(new PostResource($post), 'Post created successfully.', 201);
     }
 
     public function show($id)
     {
-        $post = Post::find($id);
-    
+        $post = Post::with(['comments.user']) 
+            ->where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
         if (!$post) {
-            return AppResponse::error('Post not found.', 404);
+            return AppResponse::error('Post not found or unauthorized access.', 404);
         }
-    
-        $postWithComments = $post->load('comments');
-        return AppResponse::success($postWithComments, 'Post retrieved successfully.', 200);
+
+        return AppResponse::success($post, 'Post retrieved successfully.', 200);
     }
 
     public function search(Request $request)
@@ -55,11 +53,11 @@ class PostController extends Controller
         $query = $request->input('query');
         $userName = $request->input('user_name');
 
-        if (!$query) {
-            throw new InvalidQueryException('Query cannot be empty.');
+        if (!$query && !$userName) {
+            throw new InvalidQueryException('Query and user name cannot both be empty.');
         }
-    
-        $posts = Post::query()
+
+        $posts = Post::where('user_id', Auth::id())
             ->when($query, function ($queryBuilder) use ($query) {
                 return $queryBuilder->where('title', 'LIKE', "%{$query}%")
                     ->orWhere('body', 'LIKE', "%{$query}%");
@@ -71,7 +69,7 @@ class PostController extends Controller
             })
             ->with(['user', 'comments.user'])
             ->paginate(10);
-    
+
         if ($posts->isEmpty()) {
             return AppResponse::error('No posts found matching the search criteria.', 404);
         }
@@ -79,36 +77,43 @@ class PostController extends Controller
         return AppResponse::success($posts, 'Search results retrieved successfully.', 200);
     }
 
-    public function destroy(Post $post, Comment $comment)
+    public function destroy($id)
     {
-        if (!$post->exists) {
-            return AppResponse::error('Post not found.', 404);
+        $post = Post::with('comments')->where('id', $id)->where('user_id', Auth::id())->first();
+
+        if (!$post) {
+            return AppResponse::error('Post not found or unauthorized access.', 404);
         }
 
-        $post->comments()->delete();
+        $post->comments()->delete(); 
         $post->delete();
-        
-        return AppResponse::success(message: 'Post and comments deleted successfully.', statusCode: 200);
+
+        return AppResponse::success('Post and related comments deleted successfully.', 200);
     }
 
-    public function restore(Request $request, $id)
+    public function restore($id)
     {
-        $post = Post::withTrashed()->find($id);
-    
+        $post = Post::withTrashed()->with('comments')->where('id', $id)->where('user_id', Auth::id())->first();
+
         if (!$post || !$post->trashed()) {
             return AppResponse::error('Post not found or not deleted.', 404);
         }
 
         $post->restore();
         $post->comments()->onlyTrashed()->restore();
-    
-        return AppResponse::success(message: 'Post and associated comments restored successfully!', statusCode: 200);
+
+        return AppResponse::success('Post and associated comments restored successfully!', 200);
     }
 
     public function trashed(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        $trashedPosts = Post::onlyTrashed()->paginate($perPage); 
+
+        $trashedPosts = Post::onlyTrashed()
+            ->where('user_id', Auth::id())
+            ->with(['comments.user'])
+            ->paginate($perPage);
+
         if ($trashedPosts->isEmpty()) {
             return AppResponse::error('No trashed posts found.', 404);
         }

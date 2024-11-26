@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Exceptions\Handler;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
@@ -10,10 +9,8 @@ use App\Models\User;
 use Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\AppResponse; 
-use App\Exceptions\InvalidCredentialsException;
 use Log;
 
 class AuthController extends Controller
@@ -35,6 +32,7 @@ class AuthController extends Controller
     }
 
     public function login(LoginRequest $request): JsonResponse
+    // TODO: I update my handler exception 
     {
         try {
             $validatedData = $request->validated();
@@ -62,7 +60,7 @@ class AuthController extends Controller
         }
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(): JsonResponse
     {
         try {
             $user = Auth::user();

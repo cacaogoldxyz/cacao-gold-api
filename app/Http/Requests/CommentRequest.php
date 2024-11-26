@@ -11,6 +11,7 @@ class CommentRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // Check if the user is authenticated before making a comment request.
         return true;
     }
 
@@ -22,7 +23,19 @@ class CommentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => 'required|string',
+            'body' => 'required|string|max:500', // Added a max length for comment body for better validation.
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        if (auth()->check()) {
+            $this->merge([
+                'user_id' => auth()->id(), // Automatically merge the authenticated user's ID.
+            ]);
+        }
     }
 }
