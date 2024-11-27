@@ -15,23 +15,24 @@ class PostController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->get('perPage', 10);
         $posts = Post::where('user_id', Auth::id())
             ->with(['comments.user']) 
-            ->get();
+            ->paginate($perPage);
 
         return AppResponse::success($posts, 'Posts retrieved successfully.', 200);
     }
 
     public function store(PostRequest $request)
     {
-        $validated = $request->validated();
+        info('Authenticated user ID:', ['id' => auth()->id()]);
 
-        $post = Post::create(array_merge(
-            $validated,
-            ['user_id' => Auth::id()] 
-        ));
+        $validatedData = $request->validated();
+        $validatedData['user_id'] = auth()->id();
 
-        return AppResponse::success(new PostResource($post), 'Post created successfully.', 201);
+        $post = Post::create($validatedData);
+
+        return PostResource::make($post);
     }
 
     public function show($id)

@@ -29,6 +29,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
 // API routes for Post and Comment management (No token required)
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    Route::post('/posts', [PostController::class, 'store']);
     Route::get('posts/search', [PostController::class, 'search']);
     Route::get('posts/trashed', [PostController::class, 'trashed']);
     Route::get('comments/trashed', [CommentController::class, 'trashed']);
