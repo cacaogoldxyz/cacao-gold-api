@@ -16,13 +16,18 @@ class CommentController extends Controller
     public function index(Request $request)
     {
         $comments = Comment::with(['post', 'user'])
-            ->where('user_id', Auth::id())
-            ->paginate(10);
+        ->where('user_id', Auth::id())
+        ->paginate(5);
 
+        $comments->getCollection()->transform(function ($comment) {
+            $comment->unique_key = "comment-{$comment->id}"; 
+            return $comment;
+        });
+    
         if ($comments->isEmpty()) {
             return AppResponse::error('No comments found.', 404);
         }
-
+    
         return AppResponse::success($comments, 'Comments retrieved successfully.', 200);
     }
 

@@ -19,7 +19,12 @@ class PostController extends Controller
         $posts = Post::where('user_id', Auth::id())
             ->with(['comments.user']) 
             ->paginate($perPage);
-
+    
+        $posts->getCollection()->transform(function ($post) {
+            $post->unique_key = "post-{$post->id}"; 
+            return $post;
+        });
+    
         return AppResponse::success($posts, 'Posts retrieved successfully.', 200);
     }
 
