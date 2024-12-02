@@ -17,9 +17,9 @@ class CommentController extends Controller
     {
         $comments = Comment::with(['post', 'user'])
         ->where('user_id', Auth::id())
-        ->paginate(5);
+        ->get();
 
-        $comments->getCollection()->transform(function ($comment) {
+        $comments->transform(function ($comment) {
             $comment->unique_key = "comment-{$comment->id}"; 
             return $comment;
         });
@@ -66,7 +66,8 @@ class CommentController extends Controller
                 });
             })
             ->with(['post', 'user'])
-            ->paginate(10);
+            ->get();
+            // ->paginate(10);
 
         if ($comments->isEmpty()) {
             return AppResponse::error('No comments found matching the provided criteria.', 404);

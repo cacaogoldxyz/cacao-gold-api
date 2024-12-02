@@ -15,12 +15,11 @@ class PostController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->get('perPage', 10);
         $posts = Post::where('user_id', Auth::id())
-            ->with(['comments.user']) 
-            ->paginate($perPage);
+        ->with(['comments.user'])
+        ->get();
     
-        $posts->getCollection()->transform(function ($post) {
+        $posts->transform(function ($post) {
             $post->unique_key = "post-{$post->id}"; 
             return $post;
         });
@@ -74,7 +73,8 @@ class PostController extends Controller
                 });
             })
             ->with(['user', 'comments.user'])
-            ->paginate(10);
+            ->get();
+            // ->paginate(10);
 
         if ($posts->isEmpty()) {
             return AppResponse::error('No posts found matching the search criteria.', 404);
