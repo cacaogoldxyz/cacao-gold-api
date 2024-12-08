@@ -16,8 +16,8 @@ class CommentController extends Controller
     public function index(Request $request)
     {
         $comments = Comment::with(['post', 'user'])
-        ->where('user_id', Auth::id())
-        ->get();
+            ->where('user_id', Auth::id())
+            ->get();
 
         $comments->transform(function ($comment) {
             $comment->unique_key = "comment-{$comment->id}"; 
@@ -43,7 +43,7 @@ class CommentController extends Controller
             'body' => $validated['body'],
             'user_id' => Auth::id(),
         ]);
-
+    
         return AppResponse::success($comment, 'Comment created successfully.', 201);
     }
 
@@ -67,7 +67,6 @@ class CommentController extends Controller
             })
             ->with(['post', 'user'])
             ->get();
-            // ->paginate(10);
 
         if ($comments->isEmpty()) {
             return AppResponse::error('No comments found matching the provided criteria.', 404);

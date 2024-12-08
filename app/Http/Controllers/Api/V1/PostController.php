@@ -15,6 +15,8 @@ class PostController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = 10;
+        $posts = Post::orderBy('created_at', 'desc')->paginate($perPage);
         $posts = Post::where('user_id', Auth::id())
         ->with(['comments.user'])
         ->get();
