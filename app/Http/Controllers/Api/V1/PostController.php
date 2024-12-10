@@ -16,10 +16,10 @@ class PostController extends Controller
     public function index(Request $request)
     {
         $perPage = 10;
-        $posts = Post::orderBy('created_at', 'desc')->paginate($perPage);
+
         $posts = Post::where('user_id', Auth::id())
         ->with(['comments.user'])
-        ->get();
+        ->paginate($perPage);
     
         $posts->transform(function ($post) {
             $post->unique_key = "post-{$post->id}"; 
@@ -35,6 +35,8 @@ class PostController extends Controller
 
         $validatedData = $request->validated();
         $validatedData['user_id'] = auth()->id();
+
+        info('User ID for post:', ['user_id' => $validatedData['user_id']]);
 
         $post = Post::create($validatedData);
 
