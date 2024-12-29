@@ -15,14 +15,24 @@ class PostController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = 10;
+        $perPage = $request->input('per_page', 10);
+        $searchQuery = $request->input('query');
 
-        $posts = Post::where('user_id', Auth::id())
-        ->with(['comments.user'])
-        ->paginate($perPage);
-    
+        $query = Post::where('user_id', Auth::id())
+        ->with(['comments.user']) 
+        ->orderBy('created_at', 'desc');
+
+        if ($searchQuery) {
+            $query->where(function ($queryBuilder) use ($searchQuery) {
+                $queryBuilder->where('title', 'like', "%{$searchQuery}%")
+                             ->orWhere('body', 'like', "%{$searchQuery}%");
+            });
+        }
+
+        $posts = $query->paginate($perPage);
+
         $posts->transform(function ($post) {
-            $post->unique_key = "post-{$post->id}"; 
+            $post->unique_key = "post-{$post->id}";
             return $post;
         });
     

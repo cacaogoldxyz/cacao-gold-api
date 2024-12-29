@@ -15,14 +15,19 @@ class CommentController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = $request->input('per_page', 10);
+        
         $comments = Comment::with(['post', 'user'])
             ->where('user_id', Auth::id())
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
-        $comments->transform(function ($comment) {
-            $comment->unique_key = "comment-{$comment->id}"; 
+
+        $comments->getCollection()->transform(function ($comment) {
+            $comment->unique_key = "comment-{$comment->id}";
             return $comment;
         });
+
     
         if ($comments->isEmpty()) {
             return AppResponse::error('No comments found.', 404);
