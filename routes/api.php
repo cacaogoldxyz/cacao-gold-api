@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CommentController;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\ContactController;
 use Illuminate\Support\Facades\Route;
 
 // Route to get the CSRF token (required for stateful requests)
@@ -27,7 +28,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('tasks-search', [TaskController::class, 'search']);
 }); 
 
-// API routes for Post and Comment management (No token required)
+// API routes for Post and Comment management (Token required)
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/posts', [PostController::class, 'store']);
     Route::get('posts/search', [PostController::class, 'search']);
@@ -41,6 +42,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::apiResource('posts.comments', CommentController::class);
     Route::get('comments/search', [CommentController::class, 'search'])->name('comments.search');
     Route::delete('comments/{id}', [CommentController::class, 'destroy'])->name('comments.destroy');
+});
+
+// API routes for Contact (Token required)
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    Route::post('/contact', [ContactController::class, 'submit']);
 });
 
 Route::prefix('v1')->group(function () {
